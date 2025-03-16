@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Spectral Graph Project</title>
+
+  <!-- Link to external CSS -->
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+
+
+  <!-- React & ReactDOM from CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+  <!-- Babel for in-browser JSX compilation -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <!-- Top navigation bar -->
+  <nav class="navbar">
+    <div class="nav-logo">OurLogo</div>
+    <div class="nav-links">
+      <span id="nav-draw" class="nav-item">Draw Spectral Graph</span>
+      <span id="nav-illustration" class="nav-item">Illustration</span>
+    </div>
+  </nav>
+
+  <!-- Main content area for React -->
+  <div id="root"></div>
+
+  <!-- Load our React code -->
+  <script src="app.js" type="text/babel"></script>
+</body>
+</html>

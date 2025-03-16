@@ -1,0 +1,163 @@
+/* Global resets */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background-color: #fafafa; /* Light background, feel free to change */
+  }
+  
+/* Updated Navbar CSS for a 3D effect */
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: linear-gradient(180deg, #ffffff, #f2f2f2); /* Subtle gradient */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);  /* 3D shadow effect */
+    padding: 15px 30px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+  }
+  
+  /* Logo styling */
+  .nav-logo {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #333;
+    margin-right: 30px; /* Space between logo and nav items */
+  }
+  
+  /* Nav links container */
+  .nav-links {
+    display: flex;
+    gap: 20px;
+  }
+  
+  /* Individual nav item styling */
+  .nav-item {
+    cursor: pointer;
+    font-size: 1rem;      /* slightly smaller font size */
+    font-weight: bold;    /* bold text */
+    color: #333;
+    transition: all 0.3s ease;
+  }
+  
+  .nav-item:hover {
+    transform: scale(1.03);  /* subtle hover effect */
+    color: #ff4141;          /* change color on hover */
+  }
+  
+  
+  
+  /* Hero section styling */
+  .hero-section {
+    text-align: center;
+    margin: 100px auto;        /* Increased vertical margin */
+    max-width: 900px;          /* Slightly wider container */
+    padding: 0 20px;
+  }
+  
+  .hero-title {
+    font-size: 3rem;           /* Bigger title */
+    margin-bottom: 20px;
+    font-weight: 700;          /* Bold weight */
+    color: #222;
+    font-family: 'Montserrat', sans-serif; /* Stylish font for the title */
+  }
+  
+  .hero-subtitle {
+    font-size: 1.5rem;         /* Bigger subtitle */
+    color: #444;
+    margin-bottom: 40px;
+    line-height: 1.6;
+    font-family: 'Roboto', sans-serif;     /* Clean, modern font for the subtitle */
+  }
+  
+  
+  /* Hidden file input */
+  #fileInput {
+    display: none;
+  }
+  
+  /* Buttons */
+  button {
+    cursor: pointer;
+    font-size: 1.4rem;       /* Slightly smaller than before */
+    border: none;
+    border-radius: 8px;
+    padding: 20px 60px;      /* More horizontal padding for a wider button */
+    transition: background-color 0.3s ease;
+    color: #fff;
+    margin-top: 20px;
+  }
+  
+  
+  
+  .big-button {
+    background-color: #ff4141;
+  }
+  .big-button:hover {
+    background-color: #ff6161;
+  }
+  
+  .download-button {
+    background-color: #007bff;
+  }
+  .download-button:hover {
+    background-color: #0056b3;
+  }
+  
+  .loading-text {
+    font-size: 1.3rem;
+    color: #333;
+    margin: 20px 0;
+  }
+  
+  /* Illustration page styling */
+  .illustration-section {
+    margin: 80px auto;
+    text-align: center;
+    max-width: 900px;
+    padding: 0 20px;
+  }
+  
+  .illustration-title {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: #333;
+  }
+  
+  .illustration-subtitle {
+    font-size: 1rem;
+    color: #666;
+    margin-bottom: 30px;
+  }
+  
+  /* Arrange illustration images vertically */
+  .illustration-images {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;           /* Space between each image block */
+    align-items: center; /* Center each block horizontally */
+  }
+  
+  /* Style each illustration item */
+  .illustration-item {
+    background-color: transparent; /* remove any background color */
+    box-shadow: none;              /* remove shadow if applied */
+    border: none;                  /* remove border if applied */
+  }
+  
+  /* Make the images bigger */
+  .illustration-images img {
+    border: none;               /* remove any border */
+    box-shadow: none;           /* remove any shadow */
+    background-color: transparent; /* match page background, if needed */
+  
+    /* Make images bigger */
+    width: 90%;                 /* or 100% if you want it fully responsive */
+    max-width: 900px;           /* allow images to be very large on wide screens */
+    display: block;             /* ensures proper centering with margin auto */
+    margin: 0 auto;             /* center horizontally */
+  }
