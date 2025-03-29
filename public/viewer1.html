@@ -25,20 +25,28 @@
     function ViewerApp() {
         const example = getQueryParam("example");
         console.log("Query parameter 'example':", example); 
-      const dataMap = {
-        brain: {
-          embeddingUrl: "embedding.txt",
-          graphUrl: "graph.txt",
-        },
-        f1: {
-          embeddingUrl: "embedding.txt",
-          graphUrl: "graph.txt",
-        },
-        cup: {
-          embeddingUrl: "embedding.txt",
-          graphUrl: "graph.txt",
-        },
-      };
+        const dataMap = {
+            g1: {
+              embeddingUrl: "graph/barth5embedding.txt",
+              graphUrl: "graph/barth5graph.txt",
+            },
+            g2: {
+              embeddingUrl: "graph/grid_dual1embedding.txt",
+              graphUrl: "graph/grid_dual1graph.txt",
+            },
+            g3: {
+              embeddingUrl: "graph/aug3dembedding.txt",
+              graphUrl: "graph/aug3d.txt",
+            },
+            g4: {
+              embeddingUrl: "graph/fe_4elt2embedding.txt",
+              graphUrl: "graph/fe_4elt2graph.txt",
+            },
+            g5: {
+              embeddingUrl: "graph/pkustk01embedding.txt",
+              graphUrl: "graph/pkustk01graph.txt",
+            },
+          };
 
       const data = dataMap[example];
       if (!data) {

@@ -90,16 +90,16 @@ function Illustration() {
 
       <div className="illustration-images">
         <div>
-          <img src="../img/img1.png" alt="Graph 1" />
-          <p>Graph 1</p>
+          <img src="../img/barth5.png" alt="Graph 1" />
+          <p>barth5</p>
         </div>
         <div>
-          <img src="../img/img2.png" alt="Graph 2" />
-          <p>Graph 2</p>
+          <img src="../img/pkustk01.png" alt="Graph 2" />
+          <p>pkustk01</p>
         </div>
         <div>
-        <img src="../img/img3.png" alt="Graph 1" />
-          <p>Graph 3</p>
+        <img src="../img/fe_4elt2.png" alt="Graph 1" />
+          <p>fe_4elt2</p>
         </div>
       </div>
     </div>
@@ -108,9 +108,11 @@ function Illustration() {
 
 function ThreeDGallery() {
   const items = [
-    { id: "brain", title: "Brain Visualization", thumbnail: "../img/img1.png" },
-    { id: "f1", title: "F1 Car", thumbnail: "../img/img1.png" },
-    { id: "cup", title: "Thermal Simulation", thumbnail: "../img/img1.png" },
+    { id: "g1", title: "barth5", thumbnail: "../img/barth5.png" },
+    { id: "g2", title: "grid_dual1", thumbnail: "../img/grid_dual1.png" },
+    { id: "g3", title: "aug3d", thumbnail: "../img/aug3d.png" },
+    { id: "g4", title: "fe_4elt2", thumbnail: "../img/fe_4elt2.png" },
+    { id: "g4", title: "pkustk01", thumbnail: "../img/pkustk01.png" },
   ];
 
   const handleClick = (exampleId) => {
