@@ -1,10 +1,5 @@
-const { useState } = React;
+const { useState, useEffect, useRef } = React;
 
-/**
- * DrawGraph component:
- * - Centered heading, subheading, big red button
- * - Upload .mtx, show "Loading...", then "Download Image"
- */
 function DrawGraph() {
   const [stage, setStage] = useState("idle");
   const [imageURL, setImageURL] = useState(null);
@@ -84,10 +79,7 @@ function DrawGraph() {
   );
 }
 
-/**
- * Illustration component:
- * - Centered heading, subheading, placeholder images
- */
+
 function Illustration() {
   return (
     <div className="illustration-section">
@@ -114,32 +106,62 @@ function Illustration() {
   );
 }
 
-/**
- * Main App: switches between "Draw Spectral Graph" and "Illustration" pages
- */
-function App() {
-  const [page, setPage] = useState("draw"); // default page
+function ThreeDGallery() {
+  const items = [
+    { id: "brain", title: "Brain Visualization", thumbnail: "../img/img1.png" },
+    { id: "f1", title: "F1 Car", thumbnail: "../img/img1.png" },
+    { id: "cup", title: "Thermal Simulation", thumbnail: "../img/img1.png" },
+  ];
 
-  // Simple function to switch pages
+  const handleClick = (exampleId) => {
+    window.open(`viewer1.html?example=${exampleId}`, "_blank");
+    console.log(window.location.search);
+  };
+
+  return (
+    <div className="threeD-gallery">
+      <h1>3D Visuals</h1>
+      <div className="gallery-grid">
+        {items.map((item) => (
+          <div key={item.id} className="gallery-card">
+            <img
+              src={item.thumbnail}
+              alt={item.title}
+              onClick={() => handleClick(item.id)}
+            />
+            <p>{item.title}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+function App() {
+  const [page, setPage] = useState("draw"); 
+
   const navigate = (pageName) => {
     setPage(pageName);
   };
 
   React.useEffect(() => {
-    // Attach click handlers to nav items
     const drawLink = document.getElementById("nav-draw");
     const illusLink = document.getElementById("nav-illustration");
+    const galleryLink = document.getElementById("nav-illustration3D");
 
     const handleDrawClick = () => navigate("draw");
     const handleIllustrationClick = () => navigate("illustration");
+    const handleGalleryClick = () => setPage("gallery"); // Named function
 
     drawLink.addEventListener("click", handleDrawClick);
     illusLink.addEventListener("click", handleIllustrationClick);
+    galleryLink.addEventListener("click", handleGalleryClick);
 
-    // Cleanup
     return () => {
       drawLink.removeEventListener("click", handleDrawClick);
       illusLink.removeEventListener("click", handleIllustrationClick);
+      galleryLink.removeEventListener("click", handleGalleryClick);
     };
   }, []);
 
@@ -147,9 +169,9 @@ function App() {
     <>
       {page === "draw" && <DrawGraph />}
       {page === "illustration" && <Illustration />}
+      {page === "gallery" && <ThreeDGallery />}
     </>
   );
 }
 
-// Render the App into #root
 ReactDOM.createRoot(document.getElementById("root")).render(<App />);

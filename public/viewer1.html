@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>3D Viewer</title>
+  <link rel="stylesheet" href="style.css" />
+  
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/vtk.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    function getQueryParam(param) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get(param);
+    }
+
+    console.log("window.location.search:", window.location.search);
+    console.log("Query parameter 'example':", getQueryParam("example"));
+    function ViewerApp() {
+        const example = getQueryParam("example");
+        console.log("Query parameter 'example':", example); 
+      const dataMap = {
+        brain: {
+          embeddingUrl: "embedding.txt",
+          graphUrl: "graph.txt",
+        },
+        f1: {
+          embeddingUrl: "embedding.txt",
+          graphUrl: "graph.txt",
+        },
+        cup: {
+          embeddingUrl: "embedding.txt",
+          graphUrl: "graph.txt",
+        },
+      };
+
+      const data = dataMap[example];
+      if (!data) {
+        return <h2>No data found for example: {example}</h2>;
+      }
+
+      return <GraphViewer {...data} />;
+    }
+
+    function GraphViewer({ embeddingUrl, graphUrl }) {
+    const containerRef = useRef(null);
+    const [vertices, setVertices] = useState(null); // Float32Array for vertices
+    const [edges, setEdges] = useState(null);       // Uint32Array for cell data (edges)
+    const [loading, setLoading] = useState(true);
+
+    React.useEffect(() => {
+        if (!embeddingUrl) return;
+        fetch(embeddingUrl)
+        .then((res) => {
+            if (!res.ok) throw new Error(`Failed to fetch ${embeddingUrl}`);
+            return res.text();
+        })
+        .then((text) => {
+            const lines = text.split("\n");
+            const verts = [];
+            lines.forEach((line) => {
+            const parts = line.trim().split(/\s+/);
+            if (!parts[0]) return; // skip empty lines
+
+            if (parts.length === 2) {
+                verts.push(parseFloat(parts[0]), parseFloat(parts[1]), 0);
+            } else {
+                verts.push(
+                parseFloat(parts[0]),
+                parseFloat(parts[1]),
+                parseFloat(parts[2])
+                );
+            }
+            });
+
+            const scale = 1e-3;
+            for (let i = 0; i < verts.length; i++) {
+            verts[i] *= scale;
+            }
+            setVertices(new Float32Array(verts));
+        })
+        .catch((err) => console.error(err));
+    }, [embeddingUrl]);
+
+
+    React.useEffect(() => {
+        if (!graphUrl) return;
+        fetch(graphUrl)
+        .then((res) => {
+            if (!res.ok) throw new Error(`Failed to fetch ${graphUrl}`);
+            return res.text();
+        })
+        .then((text) => {
+            const lines = text.split("\n");
+            const edgs = [];
+            lines.forEach((line) => {
+            const parts = line.trim().split(/\s+/);
+            if (parts.length < 2) return;
+            const u = parseInt(parts[0], 10);
+            const v = parseInt(parts[1], 10);
+            // Each edge: [2, u, v]
+            edgs.push(2, u, v);
+            });
+            setEdges(new Uint32Array(edgs));
+        })
+        .catch((err) => console.error(err));
+    }, [graphUrl]);
+
+
+    useEffect(() => {
+        if (!vertices || !edges || !containerRef.current) return;
+        setLoading(false);
+        console.log("Creating vtk.js scene with graph data...");
+
+
+        const fullScreenRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance({
+        rootContainer: containerRef.current,
+        background: [0.95, 0.95, 0.95],
+        containerStyle: { height: '600px', width: '100%' },
+        });
+        const renderer = fullScreenRenderer.getRenderer();
+        const renderWindow = fullScreenRenderer.getRenderWindow();
+        const interactor = renderWindow.getInteractor();
+
+        
+
+        const polyData = vtk.Common.DataModel.vtkPolyData.newInstance();
+        polyData.getPoints().setData(vertices, 3);
+        polyData.getLines().setData(edges);
+
+
+        const mapper = vtk.Rendering.Core.vtkMapper.newInstance();
+        mapper.setInputData(polyData);
+        const actor = vtk.Rendering.Core.vtkActor.newInstance();
+        actor.setMapper(mapper);
+        actor.getProperty().setColor(65/255,105/255,225/255); // royal blue
+        actor.getProperty().setLineWidth(2);
+
+
+        const matrixBuilder = vtk.Common.Core.vtkMatrixBuilder.buildFromDegree();
+ 
+        actor.setUserMatrix(matrixBuilder.getMatrix());
+
+        renderer.addActor(actor);
+        renderer.resetCamera();
+        renderWindow.render();
+        console.log("Graph rendered. Camera position:", renderer.getActiveCamera().getPosition());
+
+        // Create a secondary renderer for the orientation marker.
+        const axes = vtk.Rendering.Core.vtkAxesActor.newInstance();
+        // Apply the same transformation matrix to the axes.
+        axes.setUserMatrix(matrixBuilder.getMatrix());
+        const orientationRenderer = vtk.Rendering.Core.vtkRenderer.newInstance();
+        orientationRenderer.setViewport(0.0, 0.0, 0.2, 0.2);
+        orientationRenderer.setBackground([1.0, 1.0, 1.0]); // white background
+        renderWindow.addRenderer(orientationRenderer);
+        orientationRenderer.addActor(axes);
+        orientationRenderer.resetCamera();
+        renderWindow.render();
+
+
+        let isDragging = false;
+        let prevX = 0, prevY = 0;
+        const onMouseDown = (e) => {
+        isDragging = true;
+        prevX = e.clientX;
+        prevY = e.clientY;
+        };
+        const onMouseMove = (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - prevX;
+        const dy = e.clientY - prevY;
+        prevX = e.clientX;
+        prevY = e.clientY;
+        const angleFactor = 0.5; // degrees per pixel
+        matrixBuilder.rotateY(dx * angleFactor);
+        matrixBuilder.rotateX(dy * angleFactor);
+        const newMatrix = matrixBuilder.getMatrix();
+        actor.setUserMatrix(newMatrix);
+        axes.setUserMatrix(newMatrix);
+        renderWindow.render();
+        };
+        const onMouseUp = () => { isDragging = false; };
+
+        const container = containerRef.current;
+        container.addEventListener('mousedown', onMouseDown);
+        container.addEventListener('mousemove', onMouseMove);
+        container.addEventListener('mouseup', onMouseUp);
+        container.addEventListener('mouseleave', onMouseUp);
+
+        // ---- Keyboard Interaction Handling ----
+        const onKeyDown = (e) => {
+        let updated = false;
+        const angleStep = 5;
+        if (e.key === 'ArrowLeft') {
+            matrixBuilder.rotateY(angleStep);
+            updated = true;
+        } else if (e.key === 'ArrowRight') {
+            matrixBuilder.rotateY(-angleStep);
+            updated = true;
+        } else if (e.key === 'ArrowUp') {
+            matrixBuilder.rotateX(angleStep);
+            updated = true;
+        } else if (e.key === 'ArrowDown') {
+            matrixBuilder.rotateX(-angleStep);
+            updated = true;
+        } else if (e.key === ' ') {
+            matrixBuilder.identity();
+            updated = true;
+        }
+        if (updated) {
+            const newMatrix = matrixBuilder.getMatrix();
+            actor.setUserMatrix(newMatrix);
+            axes.setUserMatrix(newMatrix);
+            renderWindow.render();
+        }
+        };
+
+        window.addEventListener('keydown', onKeyDown);
+
+        // Clean up event listeners when component unmounts.
+        return () => {
+        container.removeEventListener('mousedown', onMouseDown);
+        container.removeEventListener('mousemove', onMouseMove);
+        container.removeEventListener('mouseup', onMouseUp);
+        container.removeEventListener('mouseleave', onMouseUp);
+        window.removeEventListener('keydown', onKeyDown);
+        };
+  }, [vertices, edges]);
+
+  return (
+    <div>
+      <h1>3D Graph Viewer</h1>
+      {loading && <p>Loading graph data...</p>}
+      <div ref={containerRef} style={{ width: '100%', height: '600px', border: '1px solid #ccc' }}></div>
+    </div>
+  );
+}
+
+
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<ViewerApp />);
+  </script>
+</body>
+</html>
