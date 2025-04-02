@@ -11,31 +11,51 @@ function DrawGraph() {
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
+  
     setStage("loading");
-
+  
     try {
       const formData = new FormData();
       formData.append("file", file);
-
-      const response = await fetch("/api/generate-graph", {
+  
+      const response = await fetch("http://localhost:3000/api/generate-graph", {
         method: "POST",
         body: formData,
       });
-
+  
       if (!response.ok) {
         throw new Error("Failed to generate image");
       }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      setImageURL(url);
-      setStage("done");
+  
+      const { taskId } = await response.json();
+  
+      // Poll for task status until done
+      const pollTaskStatus = async () => {
+        const statusResponse = await fetch(`http://localhost:3000/api/task-status/${taskId}`);
+        const task = await statusResponse.json();
+        console.log("Polling status:", task);
+  
+        if (task.status === "done") {
+          // Fetch the generated image once processing is finished
+          const imgResponse = await fetch(`http://localhost:3000${task.result}`);
+          const blob = await imgResponse.blob();
+          const url = URL.createObjectURL(blob);
+          setImageURL(url);
+          setStage("done");
+        } else {
+          // If not done, wait and poll again after 1 second
+          setTimeout(pollTaskStatus, 1000);
+        }
+      };
+  
+      // Start polling
+      pollTaskStatus();
     } catch (error) {
       alert("Error: " + error.message);
       setStage("idle");
     }
   };
+  
 
   const handleDownload = () => {
     if (!imageURL) return;
@@ -112,11 +132,11 @@ function ThreeDGallery() {
     { id: "g2", title: "grid_dual1", thumbnail: "../img/grid_dual1.png" },
     { id: "g3", title: "aug3d", thumbnail: "../img/aug3d.png" },
     { id: "g4", title: "fe_4elt2", thumbnail: "../img/fe_4elt2.png" },
-    { id: "g4", title: "pkustk01", thumbnail: "../img/pkustk01.png" },
+    { id: "g5", title: "pkustk01", thumbnail: "../img/pkustk01.png" },
   ];
 
   const handleClick = (exampleId) => {
-    window.open(`viewer1.html?example=${exampleId}`, "_blank");
+    window.open(`viewer.html?example=${exampleId}`, "_blank");
     console.log(window.location.search);
   };
 
