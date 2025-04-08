@@ -2,67 +2,65 @@ const { useState, useEffect, useRef } = React;
 
 function DrawGraph() {
   const [stage, setStage] = useState("idle");
-  const [imageURL, setImageURL] = useState(null);
+  const [jobId, setJobId] = useState(null);
 
+  // Trigger the file selection dialog
   const handleSelectFile = () => {
     document.getElementById("fileInput").click();
   };
 
+  // Handle the file upload
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-  
+
     setStage("loading");
-  
+
     try {
       const formData = new FormData();
-      formData.append("file", file);
-  
-      const response = await fetch("http://localhost:3000/api/generate-graph", {
+      // Use "mtxfile" to match backend expectation
+      formData.append("mtxfile", file);
+
+      // Change URL to match backend route for job upload
+      const response = await fetch("http://localhost:8080/api/jobs", {
         method: "POST",
         body: formData,
       });
-  
+
       if (!response.ok) {
-        throw new Error("Failed to generate image");
+        throw new Error("Failed to upload file");
       }
-  
-      const { taskId } = await response.json();
-  
-      // Poll for task status until done
-      const pollTaskStatus = async () => {
-        const statusResponse = await fetch(`http://localhost:3000/api/task-status/${taskId}`);
-        const task = await statusResponse.json();
-        console.log("Polling status:", task);
-  
-        if (task.status === "done") {
-          // Fetch the generated image once processing is finished
-          const imgResponse = await fetch(`http://localhost:3000${task.result}`);
-          const blob = await imgResponse.blob();
-          const url = URL.createObjectURL(blob);
-          setImageURL(url);
-          setStage("done");
-        } else {
-          // If not done, wait and poll again after 1 second
-          setTimeout(pollTaskStatus, 1000);
-        }
-      };
-  
-      // Start polling
-      pollTaskStatus();
+
+      // Expecting a JSON response with { message, id }
+      const data = await response.json();
+      // Save the job ID returned from backend
+      setJobId(data.id);
+      setStage("done");
     } catch (error) {
       alert("Error: " + error.message);
       setStage("idle");
     }
   };
-  
 
-  const handleDownload = () => {
-    if (!imageURL) return;
-    const link = document.createElement("a");
-    link.href = imageURL;
-    link.download = "graph.png";
-    link.click();
+  // Download the job/file using the returned job ID
+  const handleDownload = async () => {
+    if (!jobId) return;
+    try {
+      const response = await fetch(`http://localhost:8080/api/jobs/${jobId}/download`);
+      if (!response.ok) {
+        throw new Error("Error downloading file");
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+
+      // Create and trigger a download link
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "downloaded_file"; // Optionally, set a default filename or parse from Content-Disposition header
+      link.click();
+    } catch (error) {
+      alert("Error: " + error.message);
+    }
   };
 
   return (
@@ -78,6 +76,7 @@ function DrawGraph() {
         type="file"
         accept=".mtx"
         onChange={handleFileChange}
+        style={{ display: "none" }}
       />
 
       {stage === "idle" && (
@@ -92,7 +91,7 @@ function DrawGraph() {
 
       {stage === "done" && (
         <button className="download-button" onClick={handleDownload}>
-          Download Image
+          Download File
         </button>
       )}
     </div>
