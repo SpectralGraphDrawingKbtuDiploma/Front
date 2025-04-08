@@ -1,18 +1,20 @@
 const { useState, useEffect, useRef } = React;
 
+
 function DrawGraph() {
   // State variables to track the workflow.
   // stage: idle, uploading, processing, completed
   const [stage, setStage] = useState("idle");
   const [jobId, setJobId] = useState(null);
-  const [downloadUrl, setDownloadUrl] = useState(null);
+  // Store resolved download URLs as an object, e.g., { obj: "url1", png: "url2" }
+  const [downloadUrls, setDownloadUrls] = useState({});
 
   // Function to trigger the file selection dialog.
   const handleSelectFile = () => {
     document.getElementById("fileInput").click();
   };
 
-  // Called when a file is selected.
+  // Called when a file is selected for upload.
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -21,10 +23,10 @@ function DrawGraph() {
 
     try {
       const formData = new FormData();
-      // Use the key "mtxfile" as required by the backend.
+      // Use "mtxfile" as required by the backend.
       formData.append("mtxfile", file);
 
-      // POST to the backend jobs endpoint.
+      // Post the file to the jobs endpoint.
       const response = await fetch("http://localhost:8080/api/jobs", {
         method: "POST",
         body: formData,
@@ -34,7 +36,7 @@ function DrawGraph() {
         throw new Error("Failed to upload file");
       }
 
-      // Expect a JSON response with the job ID.
+      // Expecting a JSON response that contains the job ID.
       const data = await response.json();
       setJobId(data.id);
       setStage("processing");
@@ -45,7 +47,7 @@ function DrawGraph() {
     }
   };
 
-  // Polls the backend for the job status.
+  // Polls the backend for job status until it's completed.
   const pollJobStatus = async (id) => {
     try {
       const res = await fetch(`http://localhost:8080/api/jobs/${id}`);
@@ -53,25 +55,33 @@ function DrawGraph() {
         throw new Error("Error fetching job status");
       }
       const job = await res.json();
-
+      
       // Check the job status.
       if (job.status === "completed") {
-        // Parse the res_url (which can have multiple lines).
+        // Parse the res_url string containing both file paths.
         // For example: "s3://artifacts/1/out.obj\ns3://artifacts/1/out.png\n"
         const urls = job.res_url
           .split("\n")
           .map(u => u.trim())
           .filter(u => u !== "");
-        // Prefer the PNG URL if available.
-        const chosenUrl = urls.find(url => url.endsWith(".png")) || urls[0];
-        // Replace "s3://" with "http://127.0.0.1:9000/" to point to your libo server.
-        const resolvedUrl = chosenUrl.replace("s3://", "http://127.0.0.1:9000/");
-        setDownloadUrl(resolvedUrl);
+
+        // Process each URL: replace "s3://" with "http://127.0.0.1:9000/"
+        const resolvedUrls = {};
+        urls.forEach(url => {
+          const resolvedUrl = url.replace("s3://", "http://127.0.0.1:9000/");
+          if (resolvedUrl.endsWith(".png")) {
+            resolvedUrls.png = resolvedUrl;
+          } else if (resolvedUrl.endsWith(".obj")) {
+            resolvedUrls.obj = resolvedUrl;
+          }
+        });
+        
+        setDownloadUrls(resolvedUrls);
         setStage("completed");
       } else if (job.status === "failed") {
         throw new Error(job.error || "Job processing failed");
       } else {
-        // If not completed, poll again after 1 second.
+        // If job is still processing, poll again after 1 second.
         setTimeout(() => pollJobStatus(id), 1000);
       }
     } catch (error) {
@@ -80,11 +90,10 @@ function DrawGraph() {
     }
   };
 
-  // Trigger the file download using the resolved URL.
-  const handleDownload = () => {
-    if (!downloadUrl) return;
-    // Open the download URL in a new tab.
-    window.open(downloadUrl, "_blank");
+  // Open the given URL in a new tab to initiate the download.
+  const handleDownload = (url) => {
+    if (!url) return;
+    window.open(url, "_blank");
   };
 
   return (
@@ -118,13 +127,29 @@ function DrawGraph() {
       )}
 
       {stage === "completed" && (
-        <button className="download-button" onClick={handleDownload}>
-          Download File
-        </button>
+        <div>
+          {downloadUrls.obj && (
+            <button
+              className="download-button"
+              onClick={() => handleDownload(downloadUrls.obj)}
+            >
+              Download OBJ File
+            </button>
+          )}
+          {downloadUrls.png && (
+            <button
+              className="download-button"
+              onClick={() => handleDownload(downloadUrls.png)}
+            >
+              Download PNG File
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
 }
+
 
 
 function Illustration() {
