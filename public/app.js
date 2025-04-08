@@ -1,27 +1,30 @@
 const { useState, useEffect, useRef } = React;
 
 function DrawGraph() {
+  // State variables to track the workflow.
+  // stage: idle, uploading, processing, completed
   const [stage, setStage] = useState("idle");
   const [jobId, setJobId] = useState(null);
+  const [downloadUrl, setDownloadUrl] = useState(null);
 
-  // Trigger the file selection dialog
+  // Function to trigger the file selection dialog.
   const handleSelectFile = () => {
     document.getElementById("fileInput").click();
   };
 
-  // Handle the file upload
+  // Called when a file is selected.
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    setStage("loading");
+    setStage("uploading");
 
     try {
       const formData = new FormData();
-      // Use "mtxfile" to match backend expectation
+      // Use the key "mtxfile" as required by the backend.
       formData.append("mtxfile", file);
 
-      // Change URL to match backend route for job upload
+      // POST to the backend jobs endpoint.
       const response = await fetch("http://localhost:8080/api/jobs", {
         method: "POST",
         body: formData,
@@ -31,36 +34,57 @@ function DrawGraph() {
         throw new Error("Failed to upload file");
       }
 
-      // Expecting a JSON response with { message, id }
+      // Expect a JSON response with the job ID.
       const data = await response.json();
-      // Save the job ID returned from backend
       setJobId(data.id);
-      setStage("done");
+      setStage("processing");
+      pollJobStatus(data.id);
     } catch (error) {
       alert("Error: " + error.message);
       setStage("idle");
     }
   };
 
-  // Download the job/file using the returned job ID
-  const handleDownload = async () => {
-    if (!jobId) return;
+  // Polls the backend for the job status.
+  const pollJobStatus = async (id) => {
     try {
-      const response = await fetch(`http://localhost:8080/api/jobs/${jobId}/download`);
-      if (!response.ok) {
-        throw new Error("Error downloading file");
+      const res = await fetch(`http://localhost:8080/api/jobs/${id}`);
+      if (!res.ok) {
+        throw new Error("Error fetching job status");
       }
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      const job = await res.json();
 
-      // Create and trigger a download link
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "downloaded_file"; // Optionally, set a default filename or parse from Content-Disposition header
-      link.click();
+      // Check the job status.
+      if (job.status === "completed") {
+        // Parse the res_url (which can have multiple lines).
+        // For example: "s3://artifacts/1/out.obj\ns3://artifacts/1/out.png\n"
+        const urls = job.res_url
+          .split("\n")
+          .map(u => u.trim())
+          .filter(u => u !== "");
+        // Prefer the PNG URL if available.
+        const chosenUrl = urls.find(url => url.endsWith(".png")) || urls[0];
+        // Replace "s3://" with "http://127.0.0.1:9000/" to point to your libo server.
+        const resolvedUrl = chosenUrl.replace("s3://", "http://127.0.0.1:9000/");
+        setDownloadUrl(resolvedUrl);
+        setStage("completed");
+      } else if (job.status === "failed") {
+        throw new Error(job.error || "Job processing failed");
+      } else {
+        // If not completed, poll again after 1 second.
+        setTimeout(() => pollJobStatus(id), 1000);
+      }
     } catch (error) {
-      alert("Error: " + error.message);
+      alert("Error checking job status: " + error.message);
+      setStage("idle");
     }
+  };
+
+  // Trigger the file download using the resolved URL.
+  const handleDownload = () => {
+    if (!downloadUrl) return;
+    // Open the download URL in a new tab.
+    window.open(downloadUrl, "_blank");
   };
 
   return (
@@ -70,7 +94,7 @@ function DrawGraph() {
         Upload your <strong>.mtx</strong> file and generate a spectral graph.
       </p>
 
-      {/* Hidden file input */}
+      {/* Hidden file input to trigger file selection */}
       <input
         id="fileInput"
         type="file"
@@ -85,11 +109,15 @@ function DrawGraph() {
         </button>
       )}
 
-      {stage === "loading" && (
-        <div className="loading-text">Loading... Please wait.</div>
+      {stage === "uploading" && (
+        <div className="loading-text">Uploading file...</div>
       )}
 
-      {stage === "done" && (
+      {stage === "processing" && (
+        <div className="loading-text">Processing file, please wait...</div>
+      )}
+
+      {stage === "completed" && (
         <button className="download-button" onClick={handleDownload}>
           Download File
         </button>
